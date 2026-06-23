@@ -10,5 +10,5 @@ public record WalletCreateRequest(
     String accountNumber,
 
     @NotNull(message = "Currency cannot be null")
-    CurrencyType currency
+    CurrencyType currencyType
 ){}

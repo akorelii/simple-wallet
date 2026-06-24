@@ -2,40 +2,45 @@ package com.infina.wallet.entity;
 
 import com.infina.wallet.enums.TransactionType;
 import jakarta.persistence.*;
-import lombok.Getter;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+@EqualsAndHashCode(callSuper = true)
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@SuperBuilder
 @Entity
 @Table(name = "transactions")
-@Getter
-@Setter
-@NoArgsConstructor
-public class Transaction {
+public class Transaction extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+
+    // @JoinColumn: Veritabanında bu ilişkiyi 'wallet_id' isminde bir kolon ile bağlarız.
+
+    @ManyToOne(fetch = FetchType.LAZY) // LAZY: İşlem geçmişini çekerken cüzdan bilgilerini gereksiz yere veritabanından çekmemek için kullanılır.
     @JoinColumn(name = "wallet_id", nullable = false)
     private Wallet wallet;
 
-    // İşlem miktarı (Yatırılan veya çekilen ham tutar)
     @Column(nullable = false)
     private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "transaction_type", nullable = false)
-    private TransactionType transactionType;
+    private TransactionType transactionType; // DTO'da bulunan DEPOSIT, WITHDRAW gibi enum türlerini tutar.
 
     @Column(name = "transaction_date", nullable = false)
     private LocalDateTime transactionDate;
 
-    // İşleme ait kısa bir açıklama (Örn: "100 USD deposited")
-    @Column
-    private String description;
+    @Column(length = 255)
+    private String description; // "123 numaralı hesaba transfer yapıldı" gibi açıklama metinleri için.
 }

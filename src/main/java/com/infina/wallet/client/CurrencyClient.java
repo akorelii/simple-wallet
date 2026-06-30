@@ -3,9 +3,11 @@ package com.infina.wallet.client;
 import com.infina.wallet.utility.GlobalRestClient;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
 
+@Slf4j
 @Component // Spring Boot'un bu sınıfı yönetmesi ve diğer sınıflara bağlayabilmesi için eklendi.
 public class CurrencyClient {
 
@@ -18,22 +20,33 @@ public class CurrencyClient {
         this.restClient = globalRestClient.createClient("https://api.frankfurter.dev/v1");
     }
 
-    // Dışarıdan para birimini (USD veya EUR) alıp, onun anlık TL (TRY) karşılığını döner.
-    public Double getLiveRate(String currency) {
-        try {
-            // API'ye şu isteği attık: https://api.frankfurter.dev/v1/latest?base=TRY
-            Map response = restClient.get()
-                    .uri("/latest?base=TRY")
-                    .retrieve()
-                    .body(Map.class); // Gelen JSON verisini Java'daki Map (Anahtar-Değer) yapısına çevirir.
+    public Double getLiveRate(String from, String to) {
+        // Eğer iki cüzdanın para birimi aynıysa kur 1.0'dır
+        if (from.equals(to)) {
+            return 1.0;
+        }
 
-            // API'den dönen karmaşık JSON içinden "rates" haritasını koparıp alıyoruz.
+        try {
+            // Dinamik olarak kaynak (from) ve hedef (to) birimlerini API'ye geçiyoruz
+            Map response = restClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/latest")
+                            .queryParam("from", from)
+                            .queryParam("to", to)
+                            .build())
+                    .retrieve()
+                    .body(Map.class);
+
             Map<String, Object> rates = (Map<String, Object>) response.get("rates");
 
-            // İstediğimiz kurun (USD veya EUR) değerini alıp double tipinde yukarıya fırlatıyoruz.
-            return (Double) rates.get(currency);
+            if (rates != null && rates.containsKey(to)) {
+                return ((Number) rates.get(to)).doubleValue();
+            }
+
+            log.warn("Kur haritasında hedef birim bulunamadı: {}. Varsayılan 1.0 dönülüyor.", to);
+            return 1.0;
         } catch (Exception e) {
-            // İnternet kesilirse veya API çökerse projenin durmaması için varsayılan güvenli bir kur döner.
+            log.error("Kur API'sine bağlanırken hata oluştu: {}", e.getMessage());
             return 1.0;
         }
     }

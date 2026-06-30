@@ -82,7 +82,7 @@ public class TransactionServiceImpl implements ITransactionService {
 
     private void executeTransfer(TransactionCreateRequest request) {
 
-        // İŞ KURALI: Aynı hesaba transfer engellenir.
+        // Aynı hesaba transfer engellenir.
         if (request.sourceAccountNumber().equals(request.targetAccountNumber())) {
             throw new WalletException(ErrorType.INVALID_TRANSACTION_TYPE, "Aynı hesaba transfer işlemi gerçekleştirilemez.");
         }
@@ -101,7 +101,12 @@ public class TransactionServiceImpl implements ITransactionService {
 
         if (!sourceWallet.getCurrencyType().equals(targetWallet.getCurrencyType())) {
             log.info("Farklı para birimleri tespit edildi. Kur hesaplanıyor...");
-            Double rate = currencyClient.getLiveRate(targetWallet.getCurrencyType().name());
+
+            //  Hem kaynak (from) hem hedef (to) birimini gönderiyoruz
+            Double rate = currencyClient.getLiveRate(
+                    sourceWallet.getCurrencyType().name(),
+                    targetWallet.getCurrencyType().name()
+            );
 
             // Gelen miktarı API'den dönen kur ile çarparak hedef hesaba eklenecek döviz miktarını buluyoruz.
             amountToAddToTarget = request.amount().multiply(BigDecimal.valueOf(rate));

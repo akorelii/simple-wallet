@@ -18,16 +18,14 @@ import java.time.LocalDateTime;
 @SuperBuilder
 @Entity
 @Table(name = "transactions")
-public class Transaction extends BaseEntity {
+public class Transaction extends BaseEntity { // db-model-controller-service-repository
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
     // @JoinColumn: Veritabanında bu ilişkiyi 'wallet_id' isminde bir kolon ile bağlarız.
-
-    @ManyToOne(fetch = FetchType.LAZY) // LAZY: İşlem geçmişini çekerken cüzdan bilgilerini gereksiz yere veritabanından çekmemek için kullanılır.
+    @ManyToOne(fetch = FetchType.LAZY) // LAZY: İşlem geçmişini çekerken cüzdan bilgilerini gereksiz yere veritabanından çekmemek için kullanılır. !!!!!!!!!!!!!!!!!!!!!!!!
     @JoinColumn(name = "wallet_id", nullable = false)
     private Wallet wallet;
 
@@ -36,11 +34,11 @@ public class Transaction extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "transaction_type", nullable = false)
-    private TransactionType transactionType; // DTO'da bulunan DEPOSIT, WITHDRAW gibi enum türlerini tutar.
+    private TransactionType transactionType;
 
     @Column(name = "transaction_date", nullable = false)
     private LocalDateTime transactionDate;
 
     @Column(length = 255)
-    private String description; // "123 numaralı hesaba transfer yapıldı" gibi açıklama metinleri için.
+    private String description;
 }

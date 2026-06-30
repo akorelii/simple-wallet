@@ -22,12 +22,15 @@ public class WalletService implements IWalletService {
     private final IWalletRepository walletRepository;
     private final WalletMapper walletMapper;
 
-    @Transactional //Spring Framework'ün bize sağladığı ve veritabanı işlemlerinde "Ya hep ya hiç" kuralını işleten bir yapı
+    @Transactional //Spring Framework'ün bize sağladığı ve veritabanı işlemlerinde "Ya hep ya hiç" kuralını işleten bir yapı -rollback yb izle
     @Override
     public WalletResponse createWallet(WalletCreateRequest request){
 
         if (walletRepository.findByAccountNumber(request.accountNumber()).isPresent()) {
-            throw new WalletException(ErrorType.WALLET_ALREADY_EXISTS, "Bu hesap numarası zaten kullanımda: " + request.accountNumber());        }
+            throw new WalletException(ErrorType.WALLET_ALREADY_EXISTS, "Bu hesap numarası zaten kullanımda: "
+                    + request.accountNumber());
+
+        }
 
         Wallet wallet = walletMapper.toEntity(request);
         wallet.setBalance(BigDecimal.ZERO);
@@ -41,6 +44,12 @@ public class WalletService implements IWalletService {
 
     @Transactional(readOnly = true)
     public WalletResponse getWalletByAccountNumber(String accountNumber) {
+        /*
+        Wallet wallet = walletRepository.findByAccountNumber(accountNumber);
+        if(wallet == null){
+        throw new exceptşon option fark
+        }
+         */
         Wallet wallet = walletRepository.findByAccountNumber(accountNumber)
                 .orElseThrow(() -> new WalletException(ErrorType.WALLET_NOT_FOUND, "Cüzdan bulunamadı: " + accountNumber));
         return walletMapper.toResponse(wallet);

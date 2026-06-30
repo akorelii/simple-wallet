@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/transactions")
+@RequestMapping(BaseController.PATH + "/transactions")
 @RequiredArgsConstructor
 public class TransactionController {
 
@@ -28,6 +28,6 @@ public class TransactionController {
         transactionService.processTransaction(request);
 
         // İşlemde herhangi bir WalletException fırlatılmazsa, başarılı kabul edip mesaj dönüyoruz.
-        return ResponseEntity.ok("İşlem başarıyla gerçekleştirildi.");
+        return ResponseEntity.ok("İşlem başarıyla gerçekleştirildi."); //!!!
     }
 }

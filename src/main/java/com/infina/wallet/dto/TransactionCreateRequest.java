@@ -9,20 +9,20 @@ import java.math.BigDecimal;
 
 public record TransactionCreateRequest(
 
-        @NotBlank(message = "Kaynak hesap numarası (sourceAccountNumber) boş bırakılamaz.")
+        @NotBlank(message = "Kaynak hesap numarası boş bırakılamaz.")
         String sourceAccountNumber,
 
         /**
-         * DİKKAT: Burada bilerek @NotBlank kullanmıyoruz.
+         * Burada bilerek @NotBlank kullanmıyoruz.
          * Çünkü DEPOSIT (Para Yatırma) veya WITHDRAW (Para Çekme) işlemlerinde
          * hedef hesap numarasına ihtiyaç yoktur, dışarıdan null gönderilecektir.
          */
         String targetAccountNumber,
 
-        @NotNull(message = "İşlem tutarı (amount) zorunludur.")
+        @NotNull(message = "İşlem tutarı zorunludur.")
         @DecimalMin(value = "0.0", inclusive = false, message = "İşlem tutarı sıfırdan büyük olmalıdır.")
         BigDecimal amount,
 
-        @NotNull(message = "İşlem tipi (transactionType) boş bırakılamaz.")
+        @NotNull(message = "İşlem tipi boş bırakılamaz.")
         TransactionType transactionType
 ) {}

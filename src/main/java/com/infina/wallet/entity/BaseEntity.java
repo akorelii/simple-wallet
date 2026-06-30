@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
 public abstract class BaseEntity {
 
     @CreatedDate // Veritabanına ilk kayıt atıldığı anki tarihi otomatik alır.
-    @Column(name = "create_date", updatable = false) // updatable = false: Kayıt bir kere oluştuktan sonra bu tarih kimse tarafından değiştirilemez. Güvenlik için şarttır.
+    @Column(name = "create_date", updatable = false)
     private LocalDateTime createDate;
 
     @LastModifiedDate // Kayıt üzerinde herhangi bir güncelleme yapıldığında bu tarihi otomatik günceller.

@@ -18,7 +18,7 @@ public class GlobalRestClient {
                 .defaultHeader("Accept", "application/json") // API'ye "Bana JSON formatında veri gönder" diyoruz.
                 .defaultHeader("Content-Type", "application/json") // API'ye "Sana JSON formatında veri gönderiyorum" diyoruz.
                 // İleride "Dış servislere güvenlik token'ı ekleyin" denirse,
-                // o ayar sadece ve sadece bu satırın altına interceptor olarak eklenecek ve tüm sistem tek tıkla güncellenecektir.
+                // o ayar sadece ve sadece bu satırın altına interceptor olarak eklenecek ve tüm sistem tek tıkla güncellenecek.
                 .build();
     }
 }

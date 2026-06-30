@@ -27,7 +27,7 @@ public class CurrencyClient {
         }
 
         try {
-            // Dinamik olarak kaynak (from) ve hedef (to) birimlerini API'ye geçiyoruz
+            // Dinamik olarak kaynak (from) ve hedef (to) birimlerini API'ye geçiyoruz !!!!!!!!!!!!!!!!!!!!
             Map response = restClient.get()
                     .uri(uriBuilder -> uriBuilder
                             .path("/latest")

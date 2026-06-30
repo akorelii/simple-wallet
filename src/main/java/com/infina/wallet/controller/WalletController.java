@@ -10,11 +10,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController // Bu sınıfın bir REST API yöneticisi olduğunu belirtir.
-@RequestMapping("/api/v1/wallets") // Bu sınıfa gelecek tüm isteklerin ana adresi.
+@RequestMapping(BaseController.PATH + "/wallets") // Bu sınıfa gelecek tüm isteklerin ana adresi.
 @RequiredArgsConstructor
 public class WalletController {
 
-    // Servis katmanına (mutfağa) bağlanıyoruz. Gevşek bağlılık (Loose Coupling) kuralı gereği sadece Interface'i çağırıyoruz.
     private final IWalletService walletService;
 
     /**
@@ -35,8 +34,7 @@ public class WalletController {
      */
     @GetMapping("/{accountNumber}")
     public ResponseEntity<WalletResponse> getWallet(@PathVariable String accountNumber) {
-        WalletResponse response = walletService.getWalletByAccountNumber(accountNumber);
         // İşlem başarılıysa HTTP 200 (OK) durum kodu ile cüzdan bilgisini dön.
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(walletService.getWalletByAccountNumber(accountNumber));
     }
 }

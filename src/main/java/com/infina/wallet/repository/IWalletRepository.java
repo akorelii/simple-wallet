@@ -13,7 +13,7 @@ import java.util.Optional;
 @Repository
 public interface IWalletRepository extends JpaRepository<Wallet, Long> { //paRepository<Wallet, Long>: Wallet tablosunda işlem yapacağımızı ve Primary Key'in Long tipinde olduğunu söyler.
 
-    // Hesap numarasına göre cüzdanı getiren standart okuma (read) metodu.
+    // Hesap numarasına göre cüzdanı getiren standart okuma metodu.
     Optional<Wallet> findByAccountNumber(String accountNumber);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

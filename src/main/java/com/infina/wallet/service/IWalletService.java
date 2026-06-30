@@ -5,7 +5,9 @@ import com.infina.wallet.dto.WalletResponse;
 
 
 public interface IWalletService {
+
+    //yeni bir cüzdan oluşturmak için kullanılacak kapı
     WalletResponse createWallet(WalletCreateRequest request);
 
-    WalletResponse getWalletById(long id);
-}
+    // hesap numarası verilerek cüzdan bilgilerini getirecek olan kapı
+    WalletResponse getWalletByAccountNumber(String accountNumber);}

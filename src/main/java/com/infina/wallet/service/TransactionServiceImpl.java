@@ -4,6 +4,8 @@ import com.infina.wallet.client.CurrencyClient;
 import com.infina.wallet.dto.TransactionCreateRequest;
 import com.infina.wallet.entity.Transaction;
 import com.infina.wallet.entity.Wallet;
+import com.infina.wallet.exception.ErrorType;
+import com.infina.wallet.exception.WalletException;
 import com.infina.wallet.repository.ITransactionRepository;
 import com.infina.wallet.repository.IWalletRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +19,7 @@ import java.time.LocalDateTime;
 import static com.infina.wallet.enums.TransactionType.DEPOSIT;
 import static com.infina.wallet.enums.TransactionType.WITHDRAW;
 
-@Slf4j // Konsola log/bilgi yazdırmak için
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TransactionServiceImpl implements ITransactionService {
@@ -36,20 +38,17 @@ public class TransactionServiceImpl implements ITransactionService {
             case DEPOSIT -> executeDeposit(request);
             case WITHDRAW -> executeWithdraw(request);
             case TRANSFER -> executeTransfer(request);
-            default -> throw new RuntimeException("Geçersiz işlem tipi!");
+            default -> throw new WalletException(ErrorType.INVALID_TRANSACTION_TYPE, "Geçersiz işlem tipi!");
         }
     }
 
     private void executeDeposit(TransactionCreateRequest request) {
-        // PESSIMISTIC LOCK: Başka bir işlem bu hesabı bozmasın diye kilitlendi. (findByAccountNumberForUpdate)
         Wallet wallet = walletRepository.findByAccountNumberForUpdate(request.sourceAccountNumber())
-                .orElseThrow(() -> new RuntimeException("Hesap bulunamadı: " + request.sourceAccountNumber()));
+                .orElseThrow(() -> new WalletException(ErrorType.WALLET_NOT_FOUND, "Hesap bulunamadı: " + request.sourceAccountNumber()));
 
-        // Mevcut bakiyenin üzerine gelen miktarı ekledik
         wallet.setBalance(wallet.getBalance().add(request.amount()));
-        walletRepository.save(wallet); // Güncel cüzdanı veritabanına kaydet.
+        walletRepository.save(wallet);
 
-        // Transaction log oluşturma:
         Transaction transaction = Transaction.builder()
                 .wallet(wallet)
                 .amount(request.amount())
@@ -61,20 +60,16 @@ public class TransactionServiceImpl implements ITransactionService {
     }
 
     private void executeWithdraw(TransactionCreateRequest request) {
-        // PESSIMISTIC LOCK
         Wallet wallet = walletRepository.findByAccountNumberForUpdate(request.sourceAccountNumber())
-                .orElseThrow(() -> new RuntimeException("Hesap bulunamadı: " + request.sourceAccountNumber()));
+                .orElseThrow(() -> new WalletException(ErrorType.WALLET_NOT_FOUND, "Hesap bulunamadı: " + request.sourceAccountNumber()));
 
-        // Bakiye kontrolü (Çekilmek istenen tutar hesaptaki paradan büyükse işlemi durdur)
         if (wallet.getBalance().compareTo(request.amount()) < 0) {
-            throw new RuntimeException("Yetersiz bakiye! Mevcut: " + wallet.getBalance());
+            throw new WalletException(ErrorType.INSUFFICIENT_BALANCE, "Yetersiz bakiye! Mevcut: " + wallet.getBalance());
         }
 
-        // Mevcut bakiyeden miktarı çıkar.
         wallet.setBalance(wallet.getBalance().subtract(request.amount()));
         walletRepository.save(wallet);
 
-        // İşlem geçmişi makbuzunu oluştur.
         Transaction transaction = Transaction.builder()
                 .wallet(wallet)
                 .amount(request.amount())
@@ -85,44 +80,47 @@ public class TransactionServiceImpl implements ITransactionService {
         transactionRepository.save(transaction);
     }
 
-    // --- 3. TRANSFER (HESAPLAR ARASI AKTARIM) MANTIĞI ---
     private void executeTransfer(TransactionCreateRequest request) {
-        // Her iki hesabı da veritabanından kilitli (Race Condition'a karşı) şekilde buluyoruz.
+
+        // İŞ KURALI: Aynı hesaba transfer engellenir.
+        if (request.sourceAccountNumber().equals(request.targetAccountNumber())) {
+            throw new WalletException(ErrorType.INVALID_TRANSACTION_TYPE, "Aynı hesaba transfer işlemi gerçekleştirilemez.");
+        }
+
         Wallet sourceWallet = walletRepository.findByAccountNumberForUpdate(request.sourceAccountNumber())
-                .orElseThrow(() -> new RuntimeException("Kaynak cüzdan bulunamadı"));
+                .orElseThrow(() -> new WalletException(ErrorType.WALLET_NOT_FOUND, "Kaynak cüzdan bulunamadı"));
 
         Wallet targetWallet = walletRepository.findByAccountNumberForUpdate(request.targetAccountNumber())
-                .orElseThrow(() -> new RuntimeException("Hedef cüzdan bulunamadı"));
+                .orElseThrow(() -> new WalletException(ErrorType.WALLET_NOT_FOUND, "Hedef cüzdan bulunamadı"));
 
-        // Gönderilecek miktar
-        BigDecimal finalAmountInSourceCurrency = request.amount();
+        // Kaynaktan düşülecek net miktar (Dışarıdan gelen miktarın ta kendisi)
+        BigDecimal amountToDeductFromSource = request.amount();
 
-        // CANLI KUR HESAPLAMASI (Özkan'ın şirketteki gerçek hayat senaryosu)
-        // Eğer hesapların para birimleri aynı değilse (Örn: TRY'den USD'ye atılıyorsa)
+        // Hedefe eklenecek miktar (Aynı para birimiyse doğrudan gelen miktar, farklıysa aşağıda kura çarpılacak)
+        BigDecimal amountToAddToTarget = request.amount();
+
         if (!sourceWallet.getCurrencyType().equals(targetWallet.getCurrencyType())) {
             log.info("Farklı para birimleri tespit edildi. Kur hesaplanıyor...");
             Double rate = currencyClient.getLiveRate(targetWallet.getCurrencyType().name());
 
-            // İstediğimiz miktarı API'den dönen kur ile çarparak asıl düşülecek TL miktarını buluyoruz.
-            finalAmountInSourceCurrency = request.amount().multiply(BigDecimal.valueOf(rate));
+            // Gelen miktarı API'den dönen kur ile çarparak hedef hesaba eklenecek döviz miktarını buluyoruz.
+            amountToAddToTarget = request.amount().multiply(BigDecimal.valueOf(rate));
         }
 
-        // Kaynak hesabın parası bu transfer için yeterli mi?
-        if (sourceWallet.getBalance().compareTo(finalAmountInSourceCurrency) < 0) {
-            throw new RuntimeException("Yetersiz bakiye!");
+        if (sourceWallet.getBalance().compareTo(amountToDeductFromSource) < 0) {
+            throw new WalletException(ErrorType.INSUFFICIENT_BALANCE, "Yetersiz bakiye!");
         }
 
         // Kaynaktan düş, hedefe ekle.
-        sourceWallet.setBalance(sourceWallet.getBalance().subtract(finalAmountInSourceCurrency));
-        targetWallet.setBalance(targetWallet.getBalance().add(request.amount()));
+        sourceWallet.setBalance(sourceWallet.getBalance().subtract(amountToDeductFromSource));
+        targetWallet.setBalance(targetWallet.getBalance().add(amountToAddToTarget));
 
         walletRepository.save(sourceWallet);
         walletRepository.save(targetWallet);
 
-        // İşlem makbuzları (Kaynaktan PARA ÇIKTIĞI için ona WITHDRAW, hedefe PARA GİRDİĞİ için ona DEPOSIT kesilir)
         Transaction sourceLog = Transaction.builder()
                 .wallet(sourceWallet)
-                .amount(finalAmountInSourceCurrency)
+                .amount(amountToDeductFromSource) // Kaynak hesaptan ne kadar TL çıktıysa o loglanır
                 .transactionType(WITHDRAW)
                 .transactionDate(LocalDateTime.now())
                 .description(targetWallet.getAccountNumber() + " hesabına gönderildi.")
@@ -130,7 +128,7 @@ public class TransactionServiceImpl implements ITransactionService {
 
         Transaction targetLog = Transaction.builder()
                 .wallet(targetWallet)
-                .amount(request.amount())
+                .amount(amountToAddToTarget) // Hedef hesaba ne kadar USD girdiyse o loglanır
                 .transactionType(DEPOSIT)
                 .transactionDate(LocalDateTime.now())
                 .description(sourceWallet.getAccountNumber() + " hesabından geldi.")

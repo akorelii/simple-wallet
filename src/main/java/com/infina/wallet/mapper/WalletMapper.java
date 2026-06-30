@@ -4,17 +4,19 @@ import com.infina.wallet.dto.WalletCreateRequest;
 import com.infina.wallet.dto.WalletResponse;
 import com.infina.wallet.entity.Wallet;
 import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.factory.Mappers;
+import org.mapstruct.ReportingPolicy;
 
-@Mapper(componentModel = "spring") // Bu mapper'ın Spring bean'i olarak yönetilmesini sağlamak icin
+/**
+ * componentModel = "spring": Bu mapper'ın artık bir Spring bileşeni (Bean) olacağını söyler.
+ * Böylece bu sınıfı Service içinde 'private final IWalletMapper walletMapper;' diyerek doğrudan enjekte edebileceğiz.
+ * unmappedTargetPolicy = ReportingPolicy.IGNORE: Eşleşmeyen alanlar olursa derleme hatası vermesini engeller.
+ */
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface WalletMapper {
 
-    WalletMapper INSTANCE = Mappers.getMapper(WalletMapper.class);
-
-    @Mapping(target = "balance", expression = "java(java.math.BigDecimal.ZERO)")
-    @Mapping(target = "transactions", expression = "java(new java.util.ArrayList<>())")
+    // Gelen istek DTO'sunu veritabanı Entity nesnesine dönüştürür.
     Wallet toEntity(WalletCreateRequest request);
 
+    // Veritabanından çıkan Entity nesnesini dışarıya döneceğimiz Response DTO'suna dönüştürür.
     WalletResponse toResponse(Wallet wallet);
 }

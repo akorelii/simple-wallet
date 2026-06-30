@@ -2,6 +2,7 @@ package com.infina.wallet.mapper;
 
 import com.infina.wallet.dto.TransactionCreateRequest;
 import com.infina.wallet.dto.TransactionResponse;
+import com.infina.wallet.entity.Transaction;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;

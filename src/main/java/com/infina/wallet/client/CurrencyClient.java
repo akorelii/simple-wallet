@@ -1,5 +1,6 @@
 package com.infina.wallet.client;
 
+import com.infina.wallet.utility.GlobalRestClient;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -11,9 +12,10 @@ public class CurrencyClient {
     // En güncel ve modern HTTP istemcisi.
     private final RestClient restClient;
 
-    // Constructor: RestClient'ı Frankfurter API'sinin ana adresiyle hazır hale getiriyoruz.
-    public CurrencyClient() {
-        this.restClient = RestClient.create("https://api.frankfurter.dev/v1");
+    // Eski hali:
+    // this.restClient = RestClient.create("https://api.frankfurter.dev/v1");
+    public CurrencyClient(GlobalRestClient globalRestClient) {
+        this.restClient = globalRestClient.createClient("https://api.frankfurter.dev/v1");
     }
 
     // Dışarıdan para birimini (USD veya EUR) alıp, onun anlık TL (TRY) karşılığını döner.

@@ -1,22 +1,28 @@
-package com.infina.wallet.dto;
+package com.infina.wallet.dto; // Eğer doğrudan dto klasöründeyse '.request' kısmını sil.
 
 import com.infina.wallet.enums.TransactionType;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+
 import java.math.BigDecimal;
 
 public record TransactionCreateRequest(
-        @NotBlank(message = "Source account number cannot be blank")
+
+        @NotBlank(message = "Kaynak hesap numarası (sourceAccountNumber) boş bırakılamaz.")
         String sourceAccountNumber,
 
-        @NotBlank(message = "Target account number cannot be blank")
+        /**
+         * DİKKAT: Burada bilerek @NotBlank kullanmıyoruz.
+         * Çünkü DEPOSIT (Para Yatırma) veya WITHDRAW (Para Çekme) işlemlerinde
+         * hedef hesap numarasına ihtiyaç yoktur, dışarıdan null gönderilecektir.
+         */
         String targetAccountNumber,
 
-        @NotNull(message = "Amount is required")
-        @DecimalMin(value = "0.0", inclusive = false, message = "Amount must be greater than zero")
-        private BigDecimal amount
-) {
-        public TransactionType transactionType() {
-        }
-}
+        @NotNull(message = "İşlem tutarı (amount) zorunludur.")
+        @DecimalMin(value = "0.0", inclusive = false, message = "İşlem tutarı sıfırdan büyük olmalıdır.")
+        BigDecimal amount,
+
+        @NotNull(message = "İşlem tipi (transactionType) boş bırakılamaz.")
+        TransactionType transactionType
+) {}
